@@ -15,10 +15,10 @@ const options = {
 	defaultRadius: 2,
 	addedRadius: 2,
 
-	communication: 150
+	communication: 200
 }
 
-let particles = [];
+const particles = [];
 
 class Particle {
 	constructor(posX, posY) {
@@ -28,8 +28,6 @@ class Particle {
 		this.directionAngle = Math.floor(Math.random() * 360);
 		this.speed = options.defaultSpeed + Math.random() * options.addedSpeed;
 		this.radius = options.defaultRadius + Math.random() * options.addedRadius;
-
-		this.color = options.particleColor;
 
 		this.direction = {
 			x: Math.cos(this.directionAngle) * this.speed,
@@ -53,13 +51,14 @@ class Particle {
 		this.y > height ? this.y = height : this.y;
 		this.y < 0 ? this.y = 0 : this.y;
 
-		//Coordinate update;
-		this.x += this.direction.x;
-		this.y += this.direction.y;
+		this.x += this.direction.x; //Coordinate X update;
+		this.y += this.direction.y; //Coordinate Y update;
+
+		return this; //Necessary to call methods in a chain;
 	}
 
-	render() {
-		context.fillStyle = this.color;
+	render() { //Particle rendering
+		context.fillStyle = options.particleColor;
 		context.beginPath();
 		context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 		context.closePath();
@@ -69,29 +68,23 @@ class Particle {
 
 function setup() {
 	//Filling the array particles[] instances of Particle;
-	for(let i = 0; i < options.particleAmount; i++) {
+	for(let i = 0; i < options.particleAmount; i++)
 		particles.push(new Particle());
-	}
 
 	loop();
 }
 
 function loop() {
-	//Feld cleaning;
-	context.fillStyle = options.canvasColor;
+	context.fillStyle = options.canvasColor; //Line 78 & 79 - Feld cleaning;
 	context.fillRect(0, 0, width, height);
 
 	//Updating the coordinates and drawing particle;
-	particles.forEach(particle => {
-		particle.updateCoords();
-		particle.render();
-	});
+	particles.forEach(particle => particle.updateCoords().render());
 
 	//Particle bonding;
 	particles.forEach(particle => communicatePoints(particle, particles));
 
-	//Start main loop;
-	requestAnimationFrame(loop);
+	requestAnimationFrame(loop); //Start main loop;
 }
 
 function communicatePoints(particle, parent) {
@@ -100,7 +93,15 @@ function communicatePoints(particle, parent) {
 		let opacity = 1 - distance / options.communication;
 
 		if(opacity > 0) {
-			context.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+			let gradient = context
+					.createLinearGradient(particle.x, particle.y, parent[i].x, parent[i].y);
+
+			gradient.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+			gradient.addColorStop(.35, `rgba(0, 0, 255, ${opacity})`);
+			gradient.addColorStop(.65, `rgba(0, 255, 0, ${opacity})`);
+			gradient.addColorStop(1, `rgba(255, 255, 255, ${opacity})`);
+			context.strokeStyle = gradient;
+
 			context.beginPath();
 			context.moveTo(particle.x, particle.y);
 			context.lineTo(parent[i].x, parent[i].y);
@@ -112,11 +113,9 @@ function communicatePoints(particle, parent) {
 
 //Calculation of the distance between two points;
 const distanceCheck = (x1, y1, x2, y2) => Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
-// (x2 - x1)**2 == Math.pow((x2-x1), 2);
+// (x2 - x1)**2 == Math.pow((x2-x1), 2) == (x2 - x1)*(x2 - x1);
 
-canvas.addEventListener('click', e => {
-	particles.push(new Particle(e.clientX, e.clientY));
-});
+canvas.addEventListener('click', e => particles.push(new Particle(e.clientX, e.clientY)));
 
 canvas.addEventListener('contextmenu', e => {
 	e.preventDefault();
